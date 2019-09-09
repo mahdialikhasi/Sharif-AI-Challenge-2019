@@ -86,7 +86,7 @@ void AI::pick(World *world) {
             world->pickHero(HeroName::BLASTER);
             break;
         case 2:
-            world->pickHero(HeroName::HEALER);
+            world->pickHero(HeroName::BLASTER);
             break;
         case 3:
             world->pickHero(HeroName::BLASTER);
