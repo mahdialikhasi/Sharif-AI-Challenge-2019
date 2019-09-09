@@ -267,7 +267,7 @@ void AI::move(World *world) {
 		        			for (int k = 0; k < appropriate.size(); ++k){
 		        				int p = 1;
 		        				for (int j = 0; j < i; ++j){
-		        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
+		        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 3){
 		        						p = 0;
 		        						break;
 		        					}
