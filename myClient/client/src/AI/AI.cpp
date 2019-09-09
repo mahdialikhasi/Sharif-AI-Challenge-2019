@@ -138,7 +138,7 @@ void AI::move(World *world) {
     static int targetRefreshPeriod = 0;
 
     if(targetRefreshPeriod <= 0){
-        srand(time(0) + world->getMyHeroes()[0]->getId());//made this so we can test two clients with this exact AI code
+        srand(time(0) + world->getMyHeroes()[0]->getId());	//made this so we can test two clients with this exact AI code
         for (int i = 0; i < 4; ++i){
             if(WAR_IN_OBJECTIVE_ZONE) {
                 int random = 0;
@@ -153,86 +153,74 @@ void AI::move(World *world) {
                 	targetCellColumn[i] = targetCell->getColumn();	
                 }
                 
-                // move to near a target
-                for(Hero* opp_hero : world->getOppHeroes()){
-	                if(opp_hero->getCurrentCell().isInVision())//if hero is seen
-	                {
-	                    if(opp_hero->getCurrentCell().isInObjectiveZone()){
-	                    	Cell tmp = opp_hero->getCurrentCell();
-	                    	int tmpRow = tmp.getRow();
-	                    	int tmpCol = tmp.getColumn();
-	                    	
-	                    	int r = rand() % 2;
-	                    	if(world->getMyHeroes()[i]->getName() == HeroName::BLASTER){
-	                    		int x = 2;
-	                    		if(r == 0){
-	                    			// distance = 3
-	                    			x = 4;
-	                    		}
-	                    		if(tmpRow - x > 0 && !world->map().getCell(tmpRow - x, tmpCol).isWall() && world->map().getCell(tmpRow - x, tmpCol).isInObjectiveZone()){
-                    				int move = 1;
-                    				for (int j = 0; j < 4; ++j){
-                    					if(j != i){
-                    						if(targetCellRow[j] == world->map().getCell(tmpRow - x, tmpCol).getRow() && targetCellColumn[j] == world->map().getCell(tmpRow - x, tmpCol).getColumn()){
-                    							// dont move
-                    							move = 0;
-                    						}
-                    					}
-                    				}
-                    				if(move == 1){
-                    					targetCellRow[i] = world->map().getCell(tmpRow - x, tmpCol).getRow();
-            							targetCellColumn[i] = world->map().getCell(tmpRow - x, tmpCol).getColumn();
-                    				}
-                    			}
-                    			if(tmpRow + x > 0 && !world->map().getCell(tmpRow + x, tmpCol).isWall() && world->map().getCell(tmpRow + x, tmpCol).isInObjectiveZone()){
-                    				int move = 1;
-                    				for (int j=0; j<4; ++j){
-                    					if(j != i){
-                    						if(targetCellRow[j] == world->map().getCell(tmpRow + x, tmpCol).getRow() && targetCellColumn[j] == world->map().getCell(tmpRow + x, tmpCol).getColumn()){
-                    							// dont move
-                    							move = 0;
-                    						}
-                    					}
-                    				}
-                    				if(move == 1){
-                    					targetCellRow[i] = world->map().getCell(tmpRow + x, tmpCol).getRow();
-            							targetCellColumn[i] = world->map().getCell(tmpRow + x, tmpCol).getColumn();
-                    				}
-                    			}
-                    			if(tmpCol - x > 0 && !world->map().getCell(tmpRow, tmpCol - x).isWall() && world->map().getCell(tmpRow, tmpCol - x).isInObjectiveZone()){
-                    				int move = 1;
-                    				for (int j=0; j<4; ++j){
-                    					if(j != i){
-                    						if(targetCellRow[j] == world->map().getCell(tmpRow , tmpCol - x).getRow() && targetCellColumn[j] == world->map().getCell(tmpRow , tmpCol - x).getColumn()){
-                    							// dont move
-                    							move = 0;
-                    						}
-                    					}
-                    				}
-                    				if(move == 1){
-                    					targetCellRow[i] = world->map().getCell(tmpRow , tmpCol - x).getRow();
-            							targetCellColumn[i] = world->map().getCell(tmpRow, tmpCol - x).getColumn();
-                    				}
-                    			}
-                    			if(tmpCol + x > 0 && !world->map().getCell(tmpRow, tmpCol + x).isWall() && world->map().getCell(tmpRow, tmpCol + x).isInObjectiveZone()){
-                    				int move = 1;
-                    				for (int j=0; j<4; ++j){
-                    					if(j != i){
-                    						if(targetCellRow[j] == world->map().getCell(tmpRow , tmpCol + x).getRow() && targetCellColumn[j] == world->map().getCell(tmpRow , tmpCol + x).getColumn()){
-                    							// dont move
-                    							move = 0;
-                    						}
-                    					}
-                    				}
-                    				if(move == 1){
-                    					targetCellRow[i] = world->map().getCell(tmpRow , tmpCol + x).getRow();
-            							targetCellColumn[i] = world->map().getCell(tmpRow, tmpCol + x).getColumn();
-                    				}
-                    			}
-	                    	}
-	                    }
-	                }
-	            }
+                if(world->getMyHeroes()[i]->getName() == HeroName::BLASTER){
+                	// move to near a target
+                	// find the weackest enemy in objective zone
+                	int hp = 1000;
+                	Cell enemyCell = Cell::NULL_CELL;
+                	for(Hero* opp_hero : world->getOppHeroes()){
+                		if(opp_hero->getCurrentCell().isInVision() && opp_hero->getCurrentCell().isInObjectiveZone()){
+                			if(opp_hero->getCurrentHP() < hp){
+                				hp = opp_hero->getCurrentHP();
+                				enemyCell = opp_hero->getCurrentCell();
+                			}
+                		}
+                	}
+                	if(enemyCell != Cell::NULL_CELL){
+                		// go near that target
+                		if(world->manhattanDistance(enemyCell, world->getMyHeroes()[i]->getCurrentCell()) > 4){
+                			std::vector<Cell *> obj_list = world->map().getObjectiveZone();
+                			vector<Cell *> appropriate;
+                			for (int k = 0; k < obj_list.size(); ++k){
+                			 	if(world->manhattanDistance(*obj_list[k], enemyCell) <= 4){
+                			 		appropriate.push_back(obj_list[k]);
+                			 	}
+                			}
+                			int status = 0;
+                			// جایی برو که کمی فاصله با بقیه ی خانه های خودی داشته باشد
+                			for (int k = 0; k < appropriate.size(); ++k){
+                				int p = 1;
+                				for (int j = 0; j < 4; ++j){
+                					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
+                						p = 0;
+                						break;
+                					}
+                				}
+                				if(p == 1){
+                					targetCellRow[i] = appropriate[k]->getRow();
+                					targetCellColumn[i] = appropriate[k]->getColumn();
+                					status = 1;
+                					break;
+                				}
+                			}
+                			if(status == 0){
+                				for (int k = 0; k < appropriate.size(); ++k){
+                					int p = 1;
+	                				for (int j = 0; j < 4; ++j){
+	                					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) <= 1){
+	                						p = 0;
+	                						break;
+	                					}
+	                				}
+	                				if(p == 1){
+	                					targetCellRow[i] = appropriate[k]->getRow();
+	                					targetCellColumn[i] = appropriate[k]->getColumn();
+	                					status = 1;
+	                					break;
+	                				}
+	                			}
+                			}
+                		}else{
+                			//همونجا بمون
+                			targetCellRow[i] = world->getMyHeroes()[i]->getCurrentCell().getRow();
+                			targetCellColumn[i] = world->getMyHeroes()[i]->getCurrentCell().getColumn();
+                		}
+                	}
+                }
+                if(world->getMyHeroes()[i]->getName() == HeroName::HEALER){
+                	// move near the weakest hero
+                }
+                
             } else {
                 while (1) {
                     targetCellRow[i] = rand() % world->map().getRowNum();
@@ -269,6 +257,7 @@ void AI::move(World *world) {
                     break;
     		}
     	}
+    	// اگه میتونن شلیک کنند AP رو خالی نکن
         world->moveHero(my_heros[i]->getId(),
                         _dirs[0]);
     }
