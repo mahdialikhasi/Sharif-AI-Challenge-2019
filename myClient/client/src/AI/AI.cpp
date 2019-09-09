@@ -187,6 +187,7 @@ void AI::move(World *world) {
 	        		if(world->manhattanDistance(enemyCell, world->getMyHeroes()[i]->getCurrentCell()) > 4){
 	        			std::vector<Cell *> obj_list = world->map().getObjectiveZone();
 	        			vector<Cell *> appropriate;
+	        			vector<Cell *> best;
 	        			for (int k = 0; k < obj_list.size(); ++k){
 	        			 	if(world->manhattanDistance(*obj_list[k], enemyCell) <= 4){
 	        			 		appropriate.push_back(obj_list[k]);
@@ -203,10 +204,9 @@ void AI::move(World *world) {
 	        					}
 	        				}
 	        				if(p == 1){
-	        					targetCellRow[i] = appropriate[k]->getRow();
-	        					targetCellColumn[i] = appropriate[k]->getColumn();
+	        					
 	        					status = 1;
-	        					break;
+	        					best.push_back(appropriate[k]);
 	        				}
 	        			}
 	        			if(status == 0){
@@ -225,6 +225,17 @@ void AI::move(World *world) {
 	            					break;
 	            				}
 	            			}
+	        			}else{
+	        				int distance = 1000;
+	        				Cell moveCell = Cell::NULL_CELL;
+	        				for (int k = 0; k < best.size(); ++k){
+	        					if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), *best[k]) < distance){
+	        						distance = world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), *best[k]);
+	        						moveCell = *best[k];
+	        					}
+	        				}
+	        				targetCellRow[i] = moveCell.getRow();
+	        				targetCellColumn[i] = moveCell.getColumn();
 	        			}
 	        		}else{
 	        			//همونجا بمون
@@ -242,31 +253,37 @@ void AI::move(World *world) {
 	        			if(world->getMyHeroes()[j]->getCurrentCell().isInObjectiveZone()){
 	        				if(distance > world->manhattanDistance(world->getMyHeroes()[j]->getCurrentCell(), world->getMyHeroes()[i]->getCurrentCell())){
 	        					distance = world->manhattanDistance(world->getMyHeroes()[j]->getCurrentCell(), world->getMyHeroes()[i]->getCurrentCell());
+	        					cout << "distance :: " << distance << endl;
+	        					cout << "id : " << world->getMyHeroes()[j]->getId() << endl;
 	        					heroCell = world->getMyHeroes()[j]->getCurrentCell();
 	        				}
 	        			}
 	        		}
 	        	}
 	        	if(heroCell != Cell::NULL_CELL){
-	        		std::vector<Cell *> obj_list = world->map().getObjectiveZone();
-	        		for (int j = 0; j < obj_list.size(); ++j)
-	        		{
-	        			if(world->manhattanDistance(*obj_list[j], heroCell) <= 4){
-	        				int status = 1;
-	        				for (int k = 0; k < 4; ++k){
-	        					if(i != k){
-	        						if(heroCell == world->getMyHeroes()[k]->getCurrentCell()){
-	        							status = 0;
-	        						}
-	        					}
-	        				}
-	        				if(status == 1){
-	        					targetCellRow[i] = heroCell.getRow();
-	        					targetCellColumn[i] = heroCell.getColumn();
-	        					break;
-	        				}
-	        			}
-	        		}
+	        		if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), heroCell) > 4){
+		        		std::vector<Cell *> obj_list = world->map().getObjectiveZone();
+		        		for (int j = 0; j < obj_list.size(); ++j)
+		        		{
+		        			if(world->manhattanDistance(*obj_list[j], heroCell) <= 4){
+		        				int status = 1;
+		        				Cell targetCell = Cell::NULL_CELL;
+		        				for (int k = 0; k < 4; ++k){
+		        					if(i != k){
+		        						if(*obj_list[j] == world->getMyHeroes()[k]->getCurrentCell()){
+		        							status = 0;
+		        						}
+		        					}
+		        				}
+		        				if(status == 1){
+		        					targetCellRow[i] = obj_list[j]->getRow();
+		        					targetCellColumn[i] = obj_list[j]->getColumn();
+		        					cout << world->getMyHeroes()[i]->getId() << "go to help" << targetCellRow[i] << ":" << targetCellColumn[i] << endl;
+		        					break;
+		        				}
+		        			}
+		        		}
+		        	}
 	        	}
 	        }
 	    }
