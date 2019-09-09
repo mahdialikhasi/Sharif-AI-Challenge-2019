@@ -446,20 +446,47 @@ void AI::action(World *world) {
         	}else{
         		// Do dodge
         		std::vector<Cell *> obj_list = world->map().getObjectiveZone();
-        		int m = -1;
+        		int m = 1000;
         		Cell dodgeCell = Cell::NULL_CELL;
-        		for (int k = 0; k < obj_list.size(); ++k){
-        			int distance = world->manhattanDistance(*obj_list[k], my_hero->getCurrentCell());
-        			if(distance <= 4 && distance > m){
-        				m = distance;
-        				dodgeCell = *obj_list[k];
-        			}
+        		int hp = 1000;
+				
+				Cell enemyCell = Cell::NULL_CELL;
+				for(Hero* opp_hero : world->getOppHeroes()){
+					if(opp_hero->getCurrentCell().isInVision() && opp_hero->getCurrentCell().isInObjectiveZone()){
+						if(opp_hero->getCurrentHP() < hp){
+							hp = opp_hero->getCurrentHP();
+							enemyCell = opp_hero->getCurrentCell();
+						}
+					}
+				}
+        		if(enemyCell != Cell::NULL_CELL){
+        			for (int k = 0; k < obj_list.size(); ++k){
+        				int distance = world->manhattanDistance(*obj_list[k], my_hero->getCurrentCell());
+        				if(distance <= 4 && world->manhattanDistance(*obj_list[k], enemyCell) < m){
+        					m = world->manhattanDistance(*obj_list[k], enemyCell);
+        					dodgeCell = *obj_list[k];
+        				}
+        			}	
         		}
-        		if(m != -1){
+        		
+        		if(dodgeCell != Cell::NULL_CELL){
         			world->castAbility(*my_hero, AbilityName::BLASTER_DODGE,dodgeCell);
-        		}else if(bombing_cell != Cell::NULL_CELL) {
-                	//world->castAbility(*my_hero, AbilityName::BLASTER_BOMB,bombing_cell);
-            	}
+        		}else{
+        			m = -1;
+        			for (int k = 0; k < obj_list.size(); ++k){
+	        			int distance = world->manhattanDistance(*obj_list[k], my_hero->getCurrentCell());
+	        			if(distance <= 4 && distance > m){
+	        				m = distance;
+	        				dodgeCell = *obj_list[k];
+	        			}
+	        		}
+	        		if(m != -1){
+	        			world->castAbility(*my_hero, AbilityName::BLASTER_DODGE,dodgeCell);
+	        		}else if(bombing_cell != Cell::NULL_CELL) {
+	                	//world->castAbility(*my_hero, AbilityName::BLASTER_BOMB,bombing_cell);
+	            	}
+        		}
+        		
         	}
         } else if(my_hero->getName() == HeroName::GUARDIAN){
             //Find the closest attacking target
