@@ -86,7 +86,7 @@ void AI::pick(World *world) {
             world->pickHero(HeroName::BLASTER);
             break;
         case 2:
-            world->pickHero(HeroName::BLASTER);
+            world->pickHero(HeroName::HEALER);
             break;
         case 3:
             world->pickHero(HeroName::HEALER);
@@ -169,6 +169,8 @@ void AI::move(World *world) {
 
     if(turn % 6 == 0){
     	for (int i = 0; i < 4; ++i){
+	    	if(!world->getMyHeroes()[i]->getCurrentCell().isInObjectiveZone())
+	    		continue;
 	    	if(world->getMyHeroes()[i]->getName() == HeroName::BLASTER){
 	        	// move to near a target
 	        	// find the weackest enemy in objective zone
@@ -188,27 +190,33 @@ void AI::move(World *world) {
 	        			std::vector<Cell *> obj_list = world->map().getObjectiveZone();
 	        			vector<Cell *> appropriate;
 	        			vector<Cell *> best;
+	        			
+
 	        			for (int k = 0; k < obj_list.size(); ++k){
 	        			 	if(world->manhattanDistance(*obj_list[k], enemyCell) <= 4){
 	        			 		appropriate.push_back(obj_list[k]);
 	        			 	}
 	        			}
+	        			
+
 	        			int status = 0;
 	        			// جایی برو که کمی فاصله با بقیه ی خانه های خودی داشته باشد
 	        			for (int k = 0; k < appropriate.size(); ++k){
 	        				int p = 1;
 	        				for (int j = 0; j < 4; ++j){
 	        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
+	        						//cout << appropriate[k]->getRow() << " " << appropriate[k]->getColumn() << " ss " << targetCellRow[j] << " " << targetCellColumn[j] << endl;
 	        						p = 0;
 	        						break;
 	        					}
 	        				}
 	        				if(p == 1){
-	        					
 	        					status = 1;
 	        					best.push_back(appropriate[k]);
 	        				}
 	        			}
+	        			
+
 	        			if(status == 0){
 	        				for (int k = 0; k < appropriate.size(); ++k){
 	        					int p = 1;
@@ -238,9 +246,72 @@ void AI::move(World *world) {
 	        				targetCellColumn[i] = moveCell.getColumn();
 	        			}
 	        		}else{
+	        			
+
 	        			//همونجا بمون
-	        			targetCellRow[i] = world->getMyHeroes()[i]->getCurrentCell().getRow();
-	        			targetCellColumn[i] = world->getMyHeroes()[i]->getCurrentCell().getColumn();
+	        			std::vector<Cell *> obj_list = world->map().getObjectiveZone();
+	        			vector<Cell *> appropriate;
+	        			vector<Cell *> best;
+	        			int statusc = 0;
+	        			for (int j = 0; j < 4; ++j)
+	        			{
+	        				if(i != j){
+	        					if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), world->getMyHeroes()[j]->getCurrentCell()) <= 2){
+	        						statusc = 1;
+	        					}
+	        				}
+	        			}
+	        			if(statusc == 1){
+		        			for (int k = 0; k < obj_list.size(); ++k){
+		        			 	if(world->manhattanDistance(*obj_list[k], enemyCell) <= 4){
+		        			 		appropriate.push_back(obj_list[k]);
+		        			 	}
+		        			}
+		        			int status = 0;
+		        			// جایی برو که کمی فاصله با بقیه ی خانه های خودی داشته باشد
+		        			for (int k = 0; k < appropriate.size(); ++k){
+		        				int p = 1;
+		        				for (int j = 0; j < 4; ++j){
+		        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
+		        						//cout << appropriate[k]->getRow() << " " << appropriate[k]->getColumn() << " ss " << targetCellRow[j] << " " << targetCellColumn[j] << endl;
+		        						p = 0;
+		        						break;
+		        					}
+		        				}
+		        				if(p == 1){
+		        					status = 1;
+		        					best.push_back(appropriate[k]);
+		        				}
+		        			}
+		        			if(status == 0){
+		        				for (int k = 0; k < appropriate.size(); ++k){
+		        					int p = 1;
+		            				for (int j = 0; j < 4; ++j){
+		            					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) <= 1){
+		            						p = 0;
+		            						break;
+		            					}
+		            				}
+		            				if(p == 1){
+		            					targetCellRow[i] = appropriate[k]->getRow();
+		            					targetCellColumn[i] = appropriate[k]->getColumn();
+		            					status = 1;
+		            					break;
+		            				}
+		            			}
+		        			}else{
+		        				int distance = 1000;
+		        				Cell moveCell = Cell::NULL_CELL;
+		        				for (int k = 0; k < best.size(); ++k){
+		        					if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), *best[k]) < distance){
+		        						distance = world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), *best[k]);
+		        						moveCell = *best[k];
+		        					}
+		        				}
+		        				targetCellRow[i] = moveCell.getRow();
+		        				targetCellColumn[i] = moveCell.getColumn();
+		        			}
+	        			}
 	        		}
 	        	}
 	        }
@@ -289,7 +360,7 @@ void AI::move(World *world) {
 	    }
 
     }
-    turn = (turn + 1) % 6;
+    //turn = (turn + 1) % 6;
     
 
     vector<Hero *> my_heros = world->getMyHeroes();
