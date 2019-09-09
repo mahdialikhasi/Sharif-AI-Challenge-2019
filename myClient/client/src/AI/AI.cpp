@@ -89,7 +89,7 @@ void AI::pick(World *world) {
             world->pickHero(HeroName::BLASTER);
             break;
         case 3:
-            world->pickHero(HeroName::BLASTER);
+            world->pickHero(HeroName::HEALER);
             break;
         default:
             world->pickHero(HeroName::BLASTER);
@@ -352,7 +352,7 @@ void AI::move(World *world) {
 	    }
 
     }
-    turn = (turn + 1) % 6;
+    //turn = (turn + 1) % 6;
     
     vector<Hero *> my_heros = world->getMyHeroes();
     for(int i=0; i < 4; ++i){
