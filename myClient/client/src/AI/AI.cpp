@@ -89,7 +89,7 @@ void AI::pick(World *world) {
             world->pickHero(HeroName::HEALER);
             break;
         case 3:
-            world->pickHero(HeroName::HEALER);
+            world->pickHero(HeroName::BLASTER);
             break;
         default:
             world->pickHero(HeroName::BLASTER);
@@ -166,24 +166,23 @@ void AI::move(World *world) {
         targetRefreshPeriod = 5 * 6;// Change target locations after 5 complete moves
     } else
         targetRefreshPeriod--;
-
+    // find the weackest enemy in objective zone
+	int hp = 1000;
+	Cell enemyCell = Cell::NULL_CELL;
+	for(Hero* opp_hero : world->getOppHeroes()){
+		if(opp_hero->getCurrentCell().isInVision() && opp_hero->getCurrentCell().isInObjectiveZone()){
+			if(opp_hero->getCurrentHP() < hp){
+				hp = opp_hero->getCurrentHP();
+				enemyCell = opp_hero->getCurrentCell();
+			}
+		}
+	}
     if(turn % 6 == 0){
     	for (int i = 0; i < 4; ++i){
 	    	if(!world->getMyHeroes()[i]->getCurrentCell().isInObjectiveZone())
 	    		continue;
 	    	if(world->getMyHeroes()[i]->getName() == HeroName::BLASTER){
 	        	// move to near a target
-	        	// find the weackest enemy in objective zone
-	        	int hp = 1000;
-	        	Cell enemyCell = Cell::NULL_CELL;
-	        	for(Hero* opp_hero : world->getOppHeroes()){
-	        		if(opp_hero->getCurrentCell().isInVision() && opp_hero->getCurrentCell().isInObjectiveZone()){
-	        			if(opp_hero->getCurrentHP() < hp){
-	        				hp = opp_hero->getCurrentHP();
-	        				enemyCell = opp_hero->getCurrentCell();
-	        			}
-	        		}
-	        	}
 	        	if(enemyCell != Cell::NULL_CELL){
 	        		// go near that target
 	        		if(world->manhattanDistance(enemyCell, world->getMyHeroes()[i]->getCurrentCell()) > 4){
@@ -203,9 +202,8 @@ void AI::move(World *world) {
 	        			// جایی برو که کمی فاصله با بقیه ی خانه های خودی داشته باشد
 	        			for (int k = 0; k < appropriate.size(); ++k){
 	        				int p = 1;
-	        				for (int j = 0; j < 4; ++j){
+	        				for (int j = 0; j < i; ++j){
 	        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
-	        						//cout << appropriate[k]->getRow() << " " << appropriate[k]->getColumn() << " ss " << targetCellRow[j] << " " << targetCellColumn[j] << endl;
 	        						p = 0;
 	        						break;
 	        					}
@@ -247,18 +245,15 @@ void AI::move(World *world) {
 	        			}
 	        		}else{
 	        			
-
 	        			//همونجا بمون
 	        			std::vector<Cell *> obj_list = world->map().getObjectiveZone();
 	        			vector<Cell *> appropriate;
 	        			vector<Cell *> best;
 	        			int statusc = 0;
-	        			for (int j = 0; j < 4; ++j)
+	        			for (int j = 0; j < i; ++j)
 	        			{
-	        				if(i != j){
-	        					if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), world->getMyHeroes()[j]->getCurrentCell()) <= 2){
-	        						statusc = 1;
-	        					}
+	        				if(world->manhattanDistance(world->getMyHeroes()[i]->getCurrentCell(), world->getMyHeroes()[j]->getCurrentCell()) <= 2){
+	        					statusc = 1;
 	        				}
 	        			}
 	        			if(statusc == 1){
@@ -271,9 +266,8 @@ void AI::move(World *world) {
 		        			// جایی برو که کمی فاصله با بقیه ی خانه های خودی داشته باشد
 		        			for (int k = 0; k < appropriate.size(); ++k){
 		        				int p = 1;
-		        				for (int j = 0; j < 4; ++j){
+		        				for (int j = 0; j < i; ++j){
 		        					if(world->manhattanDistance(appropriate[k]->getRow(), appropriate[k]->getColumn(), targetCellRow[j], targetCellColumn[j]) < 2){
-		        						//cout << appropriate[k]->getRow() << " " << appropriate[k]->getColumn() << " ss " << targetCellRow[j] << " " << targetCellColumn[j] << endl;
 		        						p = 0;
 		        						break;
 		        					}
@@ -316,6 +310,7 @@ void AI::move(World *world) {
 	        	}
 	        }
 	        if(world->getMyHeroes()[i]->getName() == HeroName::HEALER){
+	        	
 	        	// move near the weakest hero
 	        	int distance = 1000;
 	        	Cell heroCell = Cell::NULL_CELL;
@@ -324,8 +319,6 @@ void AI::move(World *world) {
 	        			if(world->getMyHeroes()[j]->getCurrentCell().isInObjectiveZone()){
 	        				if(distance > world->manhattanDistance(world->getMyHeroes()[j]->getCurrentCell(), world->getMyHeroes()[i]->getCurrentCell())){
 	        					distance = world->manhattanDistance(world->getMyHeroes()[j]->getCurrentCell(), world->getMyHeroes()[i]->getCurrentCell());
-	        					cout << "distance :: " << distance << endl;
-	        					cout << "id : " << world->getMyHeroes()[j]->getId() << endl;
 	        					heroCell = world->getMyHeroes()[j]->getCurrentCell();
 	        				}
 	        			}
@@ -349,7 +342,6 @@ void AI::move(World *world) {
 		        				if(status == 1){
 		        					targetCellRow[i] = obj_list[j]->getRow();
 		        					targetCellColumn[i] = obj_list[j]->getColumn();
-		        					cout << world->getMyHeroes()[i]->getId() << "go to help" << targetCellRow[i] << ":" << targetCellColumn[i] << endl;
 		        					break;
 		        				}
 		        			}
@@ -360,9 +352,8 @@ void AI::move(World *world) {
 	    }
 
     }
-    //turn = (turn + 1) % 6;
+    turn = (turn + 1) % 6;
     
-
     vector<Hero *> my_heros = world->getMyHeroes();
     for(int i=0; i < 4; ++i){
         vector<Direction> _dirs = world->getPathMoveDirections(my_heros[i]->getCurrentCell().getRow(),
