@@ -132,14 +132,20 @@ int checkMove(World *world, vector<Hero *> my_heros, int i, Direction _dirs){
 		status = 1;
 	return status;
 }
+
 void AI::move(World *world) {
 	cerr << "-move" << endl;
     static int targetRefreshPeriod = 0;
 
     if(targetRefreshPeriod <= 0){
         srand(time(0) + world->getMyHeroes()[0]->getId());//made this so we can test two clients with this exact AI code
-        for (int i=0; i<4; ++i){
+        for (int i = 0; i < 4; ++i){
             if(WAR_IN_OBJECTIVE_ZONE) {
+                if(world->getMyHeroes()[i]->getCurrentCell().isInObjectiveZone()){
+                	int random = rand() % 2;
+                	if(random == 0)
+                		continue;
+                }
                 std::vector<Cell *> obj_list = world->map().getObjectiveZone();
 
                 Cell * targetCell = obj_list.at(rand() % (obj_list.size() - 10) + 5);
@@ -221,7 +227,7 @@ void AI::move(World *world) {
                 }
             }
         }
-        targetRefreshPeriod = 5 * 6;// Change target locations after 10 complete moves
+        targetRefreshPeriod = 5 * 6;// Change target locations after 5 complete moves
     } else
         targetRefreshPeriod--;
 
@@ -235,7 +241,7 @@ void AI::move(World *world) {
             continue;
 
         int status = checkMove(world, my_heros, i, _dirs[0]);
-    	if(status == 1){
+    	if(status == 1 && !my_heros[i]->getCurrentCell().isInObjectiveZone()){
     		// move different
     		for (int i = 0; i < 4; ++i)
     		{
@@ -257,7 +263,7 @@ void AI::action(World *world) {
 
     for(Hero* my_hero : world->getMyHeroes()){
         if(my_hero->getName() == HeroName::BLASTER){
-            //Find the closest bombing target
+        	//Find the closest bombing target
             Cell bombing_cell = Cell::NULL_CELL;
             int min_dist = 10000;
             for(Hero* opp_hero : world->getOppHeroes()){
@@ -271,10 +277,36 @@ void AI::action(World *world) {
                     }
                 }
             }
-            //Perform the bombing
-            if(bombing_cell != Cell::NULL_CELL) {
-                world->castAbility(*my_hero, AbilityName::BLASTER_ATTACK,bombing_cell);
-            }
+
+        	int bombingCooldown = my_hero->getAbility(AbilityName::BLASTER_BOMB).getRemCooldown();
+        	if(bombingCooldown <= 0 && min_dist <= 6 && world->getAP() >= 25){
+        		// Do bombing
+        		if(bombing_cell != Cell::NULL_CELL) {
+                	world->castAbility(*my_hero, AbilityName::BLASTER_BOMB,bombing_cell);
+            	}
+        	}else if(min_dist <= 4){
+        		//Perform the bombing
+            	if(bombing_cell != Cell::NULL_CELL) {
+                	world->castAbility(*my_hero, AbilityName::BLASTER_ATTACK,bombing_cell);
+            	}
+        	}else{
+        		// Do dodge
+        		std::vector<Cell *> obj_list = world->map().getObjectiveZone();
+        		int m = -1;
+        		Cell dodgeCell = Cell::NULL_CELL;
+        		for (int k = 0; k < obj_list.size(); ++k){
+        			int distance = world->manhattanDistance(*obj_list[k], my_hero->getCurrentCell());
+        			if(distance <= 4 && distance > m){
+        				m = distance;
+        				dodgeCell = *obj_list[k];
+        			}
+        		}
+        		if(m != -1){
+        			world->castAbility(*my_hero, AbilityName::BLASTER_DODGE,dodgeCell);
+        		}else if(bombing_cell != Cell::NULL_CELL) {
+                	world->castAbility(*my_hero, AbilityName::BLASTER_BOMB,bombing_cell);
+            	}
+        	}
         } else if(my_hero->getName() == HeroName::GUARDIAN){
             //Find the closest attacking target
             Cell attack_cell = Cell::NULL_CELL;
@@ -314,6 +346,7 @@ void AI::action(World *world) {
                 world->castAbility(*my_hero, AbilityName::SENTRY_RAY,shoot_cell);
             }
         } else if(my_hero->getName() == HeroName::HEALER){
+
             //Find the closest healing target
             Cell target_heal_cell = Cell::NULL_CELL;
             int min_dist = 10000;
@@ -326,12 +359,51 @@ void AI::action(World *world) {
                     target_heal_cell = _hero->getCurrentCell();
                 }
             }
-            if(min_dist > 4 || (my_hero->getCurrentCell().isInObjectiveZone() && my_hero->getCurrentHP() < 100)) // heal himself
-            	target_heal_cell = my_hero->getCurrentCell();
-            //Do the attack
-            if(target_heal_cell != Cell::NULL_CELL) {
-                world->castAbility(*my_hero, AbilityName::HEALER_HEAL,target_heal_cell);
+            int healingCooldown = my_hero->getAbility(AbilityName::HEALER_HEAL).getRemCooldown();
+            int heal = 0;
+            if(healingCooldown <= 0){
+            	if(min_dist > 4 || (my_hero->getCurrentCell().isInObjectiveZone() && my_hero->getCurrentHP() < 130)){
+            		// heal himself
+            		target_heal_cell = my_hero->getCurrentCell();
+            		heal = 1;
+            		//Do the heal
+            		if(target_heal_cell != Cell::NULL_CELL) {
+                		world->castAbility(*my_hero, AbilityName::HEALER_HEAL,target_heal_cell);
+            		}
+            	}else if(min_dist <= 4){
+            		//Do the heal
+            		if(target_heal_cell != Cell::NULL_CELL) {
+                		world->castAbility(*my_hero, AbilityName::HEALER_HEAL,target_heal_cell);
+            		}
+            		heal = 1;		
+            	}
             }
+            if(heal == 0){
+            	if(min_dist <= 4){
+            		if(target_heal_cell != Cell::NULL_CELL) {
+                		world->castAbility(*my_hero, AbilityName::HEALER_ATTACK,target_heal_cell);
+            		}
+            	}else{
+            		// Do dodge
+	        		std::vector<Cell *> obj_list = world->map().getObjectiveZone();
+	        		int m = -1;
+	        		Cell dodgeCell = Cell::NULL_CELL;
+	        		for (int k = 0; k < obj_list.size(); ++k){
+	        			int distance = world->manhattanDistance(*obj_list[k], my_hero->getCurrentCell());
+	        			if(distance <= 4 && distance > m){
+	        				m = distance;
+	        				dodgeCell = *obj_list[k];
+	        			}
+	        		}
+	        		if(m != -1){
+        				world->castAbility(*my_hero, AbilityName::HEALER_DODGE,dodgeCell);
+        			}else if(target_heal_cell != Cell::NULL_CELL) {
+                		world->castAbility(*my_hero, AbilityName::HEALER_ATTACK,target_heal_cell);
+            		}
+            	}	
+            }
+            
+            
         }
     }
 
